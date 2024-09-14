@@ -1,74 +1,54 @@
 import axios from 'axios';
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.png';
+import './Login.css'; // Import the shared CSS file
 
-function Login() {    
+const Login = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-    const [email, setEmail] = useState()
-    const [password, setPassword] = useState()
-    const navigate = useNavigate()
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('http://localhost:5000/api/users/login', { username, password });
+      const token = response.data.token; // Assuming token is returned in response.data.token
+      localStorage.setItem('token', token);
 
-    const handleSubmit = (e) => {
-        e.preventDefault()
-        axios.post("http://localhost:3001/login", { email, password })
-        .then(result => {
-            console.log(result)
-            if(result.data === "Success"){
-                navigate("/home")
-            }else{
-                navigate("/register")
-                alert("You are not registered to this service")
-
-            }
-       
-        })
-        .catch(err => console.log(err))
+      // Decode token to get user roles (example for JWT token)
+      //const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      const userRole = response.data.roles[0]; // Adjust based on token payload structure
+      if (userRole === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/student');
+      }
+    } catch (err) {
+      setError('Error logging in');
+      console.error('Login error:', err);
     }
-
+  };
 
   return (
-    <div className="d-flex justify-content-center align-items-center bg-secondary vh-100 vw-100">
-        <div className="bg-white p-3 rounded w-25">
-            <h2><center>Login</center></h2>
-            <form onSubmit={handleSubmit}>
-                
-                <div className="mb-3">
-                    <label htmlFor="email">
-                        <strong>Email</strong>
-                    </label>
-                    <input type="text" 
-                    placeholder='Enter Email' 
-                    autoComplete='off' 
-                    name='email' 
-                    className='form-control rounded-0' 
-                    onChange={(e) => setEmail(e.target.value)}
-
-                    />
-                </div>
-                <div className="mb-3">
-                    <label htmlFor="email">
-                        <strong>Password</strong>
-                    </label>
-                    <input type="password" 
-                    placeholder='Enter Password' 
-                    name='password' 
-                    className='form-control rounded-0' 
-                    onChange={(e) => setPassword(e.target.value)}
-
-                    />
-                </div>
-                <button type="submit" className="btn btn-success w-100 rounded-0">
-                    Login
-                </button>
-                </form>
-                <p>Dont have an account?</p>
-                <Link to="/register" className="btn btn-default border w-100 bg-light rounded-0 text-decoration-none">
-                    Sign Up
-                </Link>
-            
-        </div>
+    <div className="form-container">
+        <img src={logo} alt="Ksolves Logo" className="logo" />
+      <form onSubmit={handleSubmit}>
+      <h1>Login</h1>
+        <label>
+          Username:
+          <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+        </label>
+        <label>
+          Password:
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </label>
+        <button type="submit">Login</button>
+      </form>
+      {error && <p className="error-message">{error}</p>}
     </div>
   );
-}
+};
 
 export default Login;
