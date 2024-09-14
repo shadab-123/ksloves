@@ -2,6 +2,7 @@ import axios from 'axios';
 import Quill from 'quill'; // Import Quill
 import 'quill/dist/quill.snow.css'; // Import Quill styles
 import { useEffect, useRef, useState } from 'react';
+import './Admin.css';
 
 const Admin = () => {
   const [classes, setClasses] = useState([]);
@@ -14,35 +15,45 @@ const Admin = () => {
   const [error, setError] = useState(null);
 
   const quillRef = useRef(null); // Ref for Quill editor
+  const quillInstance = useRef(null); // Ref to keep the Quill instance
 
   useEffect(() => {
-    // Initialize Quill editor
-    const quill = new Quill(quillRef.current, {
-      theme: 'snow',
-      modules: {
-        toolbar: [
-          [{ 'header': '1' }, { 'header': '2' }],
-          ['bold', 'italic', 'underline'],
-          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-          ['link', 'image'],
-          ['clean']                                         // Add clean button
-        ]
-      },
-      placeholder: 'Write the content here...',
-      readOnly: false,
-      debug: 'info'
-    });
+    fetchClasses();
 
-    // Update state when editor content changes
-    quill.on('text-change', () => {
-      setContent(quill.root.innerHTML);
-    });
+    // Initialize or update Quill editor when showing the form
+    if (showForm && quillRef.current) {
+      if (!quillInstance.current) {
+        quillInstance.current = new Quill(quillRef.current, {
+          theme: 'snow',
+          modules: {
+            toolbar: [
+              [{ 'header': '1' }, { 'header': '2' }],
+              ['bold', 'italic', 'underline'],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              ['link', 'image'],
+              ['clean']
+            ]
+          },
+          placeholder: 'Write the content here...',
+          readOnly: false,
+          debug: 'info'
+        });
 
-    // If editing an existing class, set the editor content
-    if (editClass) {
-      quill.root.innerHTML = editClass.content;
+        // Update state when editor content changes
+        quillInstance.current.on('text-change', () => {
+          setContent(quillInstance.current.root.innerHTML);
+        });
+      }
+
+      // Set the editor content if editing an existing class
+      if (editClass) {
+        quillInstance.current.root.innerHTML = editClass.content;
+      } else {
+        // Clear the editor content if adding a new class
+        quillInstance.current.root.innerHTML = '';
+      }
     }
-  }, [editClass]);
+  }, [showForm, editClass]);
 
   // Fetch classes from the API
   const fetchClasses = async () => {
@@ -57,10 +68,6 @@ const Admin = () => {
       console.error('Error fetching classes:', error);
     }
   };
-
-  useEffect(() => {
-    fetchClasses();
-  }, []); // Empty dependency array means this runs once when the component mounts
 
   const handleAddClass = async (e) => {
     e.preventDefault();
@@ -130,17 +137,23 @@ const Admin = () => {
   };
 
   return (
-    <div>
-      <h1>Admin Panel</h1>
-      <button onClick={() => {
-        setEditClass(null);
-        setShowForm(!showForm);
-      }}>
+    <div className="container">
+      <h1 className="header">Admin Panel</h1>
+      <button 
+        className="button"
+        onClick={() => {
+          setEditClass(null);
+          setShowForm(!showForm);
+        }}
+      >
         {showForm ? 'Cancel' : 'Add Class'}
       </button>
 
       {showForm && (
-        <form onSubmit={editClass ? handleUpdateClass : handleAddClass}>
+        <form 
+          className="form"
+          onSubmit={editClass ? handleUpdateClass : handleAddClass}
+        >
           <label>
             Title:
             <input
@@ -172,20 +185,40 @@ const Admin = () => {
             Content:
             <div ref={quillRef} style={{ height: '200px' }}></div>
           </label>
-          <button type="submit">{editClass ? 'Update' : 'Submit'}</button>
-          {error && <p className="error-message">{error}</p>}
+          <button type="submit" className="button">
+            {editClass ? 'Update' : 'Submit'}
+          </button>
+          {error && <p className="errorMessage">{error}</p>}
         </form>
       )}
 
-      <ul>
+      <div className="classList">
         {classes.map(cls => (
-          <li key={cls._id}>
-            {cls.title} - {cls.instructor} - {cls.unit} - {cls.content}
-            <button onClick={() => handleEditClass(cls)}>Edit</button>
-            <button onClick={() => handleDeleteClass(cls.unit)}>Delete</button>
-          </li>
+          <div key={cls._id} className="classItem">
+            <h3>{cls.title}</h3>
+            <p><strong>Instructor:</strong> {cls.instructor}</p>
+            <p><strong>Unit:</strong> {cls.unit}</p>
+            <div>
+              <strong>Content:</strong>
+              <div dangerouslySetInnerHTML={{ __html: cls.content }} />
+            </div>
+            <div className="buttonContainer">
+              <button 
+                className="button"
+                onClick={() => handleEditClass(cls)}
+              >
+                Edit
+              </button>
+              <button 
+                className="button"
+                onClick={() => handleDeleteClass(cls.unit)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 };
