@@ -52,7 +52,36 @@ router.post('/updateclass', async (req, res) => {
       res.status(400).json({ error: err.message });
     }
   });
+
+  router.post('/:classId/addComment', async (req, res) => {
+    const { classId } = req.params;
+    const { comment } = req.body;
   
+    if (!comment) {
+      return res.status(400).json({ error: 'Comment is required' });
+    }
+  
+    try {
+      // Find the class by ID and update it with the new comment
+      const updatedClass = await Class.findByIdAndUpdate(
+        classId,
+        {
+          $push: { comments: comment } // Assuming `comments` is an array field in your Class model
+        },
+        { new: true } // Return the updated document
+      );
+  
+      if (!updatedClass) {
+        return res.status(404).json({ error: 'Class not found' });
+      }
+  
+      res.json(updatedClass);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
 
 router.delete('/deleteclass', async (req, res) => {
     try {
